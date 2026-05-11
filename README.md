@@ -221,8 +221,9 @@ WHERE hd.TrangThai = N'Qua han (no xau)';
   **Quá hạn 2**: Tự động chuyển Tài sản sang `San sang thanh ly` khi vượt `Deadline 2`
 
   **Kết thúc**: Khi nhân viên bấm thanh lý hợp đồng, tất cả tài sản liên quan tự động chuyển thành `Da ban thanh ly`
-  ```
-  CREATE TRIGGER trg_CapNhatNoXau
+
+```
+CREATE TRIGGER trg_CapNhatNoXau
 ON HopDong
 AFTER UPDATE, INSERT
 AS
@@ -235,8 +236,9 @@ BEGIN
       AND GETDATE() > HopDong.Deadline1; 
 END;
 ```
+<img width="1920" height="1020" alt="SQLQuery2 sql - ADMIN-PC QLCD (ADMIN-PC_Admin (86))_ - SQLQuery2 sql - ADMIN-PC QLCD (ADMIN-PC_Admin (86))_ - Microsoft SQL Server Management Studio 5_11_2026 2_59_15 AM" src="https://github.com/user-attachments/assets/be4de153-b71f-4dbb-aece-97798d86d4ac" />
 
-<img width="1920" height="1020" alt="SQLQuery2 sql - ADMIN-PC QLCD (ADMIN-PC_Admin (86))_ - SQLQuery2 sql - ADMIN-PC QLCD (ADMIN-PC_Admin (86))_ - Microsoft SQL Server Management Studio 5_11_2026 2_10_38 AM" src="https://github.com/user-attachments/assets/d07363d8-0798-4873-ae48-96cfa4b58d03" />
+
 Cập nhập hợp đồng thành nợ xấu khi vượt quá `Deadline 1`
 
 ```
