@@ -236,6 +236,8 @@ BEGIN
 END;
 ```
 
+<img width="1920" height="1020" alt="SQLQuery2 sql - ADMIN-PC QLCD (ADMIN-PC_Admin (86))_ - SQLQuery2 sql - ADMIN-PC QLCD (ADMIN-PC_Admin (86))_ - Microsoft SQL Server Management Studio 5_11_2026 2_10_38 AM" src="https://github.com/user-attachments/assets/d07363d8-0798-4873-ae48-96cfa4b58d03" />
+Cập nhập hợp đồng thành nợ xấu khi vượt quá `Deadline 1`
 
 ```
 CREATE TRIGGER trg_SanSangThanhLy
@@ -255,9 +257,53 @@ BEGIN
 END;
 ```
 <img width="1920" height="1020" alt="SQLQuery2 sql - ADMIN-PC QLCD (ADMIN-PC_Admin (86))_ - SQLQuery2 sql - ADMIN-PC QLCD (ADMIN-PC_Admin (86))_ - Microsoft SQL Server Management Studio 5_11_2026 3_02_06 AM" src="https://github.com/user-attachments/assets/9be5171c-c357-4a41-a1fc-b1997d980e6f" />
+Chuyển trạng thái tài sản sang sẵn sàng thanh lý khi vượt quá `Deadline 2`
 
+## Các sự kiện bổ sung:
+### Sự kiện Gia hạn hợp đồng
+- **Mục tiêu**: Hỗ trợ khách hàng chưa có khả năng trả gốc nhưng muốn tránh bị tính lãi kép.
 
+- **Nghiệp vụ**: Khách thanh toán toàn bộ tiền lãi tính đến ngày hiện tại. Hệ thống sẽ reset lại `NgayVay` và dời các `Deadline` sang một kỳ hạn mới. Lúc này, tiền nợ chỉ còn lại nợ gốc ban đầu, lãi kép bị triệt tiêu
+```
+CREATE OR ALTER PROCEDURE sp_ExtendContract
+    @MaHD INT,
+    @NguoiThu NVARCHAR(100),
+    @SoNgayGiaHan INT -- Số ngày muốn dời thêm (VD: 30 ngày)
+AS
+BEGIN
+    BEGIN TRANSACTION
+    BEGIN TRY
+        -- 1. Tính toán số tiền lãi hiện tại (Không bao gồm gốc)
+        DECLARE @TongNo DECIMAL(18,2) = dbo.fn_CalcMoneyContract(@MaHD, GETDATE());
+        DECLARE @Goc DECIMAL(18,2) = (SELECT SoTienVayGoc FROM HopDong WHERE MaHD = @MaHD);
+        DECLARE @TienLaiPhaiTra DECIMAL(18,2) = @TongNo - @Goc;
 
+        IF @TienLaiPhaiTra <= 0 SET @TienLaiPhaiTra = 0;
+
+        -- 2. Ghi Log việc trả lãi để gia hạn
+        INSERT INTO TransactionLog (MaHD, NgayGiaoDich, SoTienTra, NoiDung)
+        VALUES (@MaHD, GETDATE(), @TienLaiPhaiTra, N'Trả lãi gia hạn hợp đồng');
+
+        -- 3. Cập nhật Hợp đồng: 
+        -- Dời NgayLap về hiện tại và cộng thêm ngày cho Deadline
+        UPDATE HopDong
+        SET NgayLap = GETDATE(),
+            Deadline1 = DATEADD(DAY, @SoNgayGiaHan, GETDATE()),
+            Deadline2 = DATEADD(DAY, @SoNgayGiaHan + 15, GETDATE()), -- Deadline 2 cách D1 15 ngày
+            TrangThai = N'Dang vay'
+        WHERE MaHD = @MaHD;
+
+        COMMIT TRANSACTION
+        PRINT N'Gia hạn thành công. Khách đã trả lãi: ' + CAST(@TienLaiPhaiTra AS NVARCHAR(50));
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION
+        PRINT N'Lỗi gia hạn: ' + ERROR_MESSAGE();
+    END CATCH
+END;
+GO
+```
+<img width="1920" height="1020" alt="SQLQuery2 sql - ADMIN-PC QLCD (ADMIN-PC_Admin (86))_ - SQLQuery2 sql - ADMIN-PC QLCD (ADMIN-PC_Admin (86))_ - Microsoft SQL Server Management Studio 5_11_2026 3_11_19 AM" src="https://github.com/user-attachments/assets/3856067b-ad46-4704-9e7d-81ae4223612c" />
 
 
 
